@@ -12,7 +12,7 @@
         android:layout_width="300dp"
         android:layout_height="250dp"
         android:layout_marginTop="40dp"
-        android:src="@drawable/selectImage"
+        android:src="@drawable/selectimage"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
