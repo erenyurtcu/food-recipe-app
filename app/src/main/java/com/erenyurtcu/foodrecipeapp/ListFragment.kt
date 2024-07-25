@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.erenyurtcu.foodrecipeapp.databinding.FragmentListBinding
+import com.erenyurtcu.foodrecipeapp.ListFragmentDirections
 
 class ListFragment : Fragment() {
 
@@ -31,8 +32,7 @@ class ListFragment : Fragment() {
     }
 
     fun addNew (view: View) {
-        val action = 
-
+        val action = ListFragmentDirections.actionListFragmentToRecipeFragment(info = "new", id = -1)
     }
 
     override fun onDestroyView() {
