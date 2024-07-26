@@ -12,6 +12,7 @@
         android:layout_width="300dp"
         android:layout_height="250dp"
         android:layout_marginTop="40dp"
+        android:onClick="selectImage"
         android:src="@drawable/selectimage"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -55,20 +56,22 @@
             android:id="@+id/saveButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:layout_marginBottom="5dp"
             android:layout_marginLeft="20dp"
+            android:layout_marginTop="5dp"
             android:layout_marginRight="20dp"
+            android:layout_marginBottom="5dp"
+            android:onClick="save"
             android:text="Save" />
 
         <Button
             android:id="@+id/deleteButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
-            android:layout_marginBottom="5dp"
             android:layout_marginLeft="20dp"
+            android:layout_marginTop="5dp"
             android:layout_marginRight="20dp"
+            android:layout_marginBottom="5dp"
+            android:onClick="delete"
             android:text="Delete" />
     </LinearLayout>
 
