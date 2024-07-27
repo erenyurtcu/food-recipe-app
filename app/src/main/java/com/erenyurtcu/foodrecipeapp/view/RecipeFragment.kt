@@ -4,12 +4,12 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,6 +19,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
 import androidx.room.Room
 import com.erenyurtcu.foodrecipeapp.databinding.FragmentRecipeBinding
@@ -31,34 +32,32 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.io.ByteArrayOutputStream
 
-
 class RecipeFragment : Fragment() {
     private var _binding: FragmentRecipeBinding? = null
     private val binding get() = _binding!!
-    private lateinit var permissionLauncher : ActivityResultLauncher<String>
+    private lateinit var permissionLauncher: ActivityResultLauncher<String>
     private lateinit var activityResultLauncher: ActivityResultLauncher<Intent>
-    private var selectedImage : Uri? = null
-    private var selectedBitmap : Bitmap? = null
+    private var selectedImage: Uri? = null
+    private var selectedBitmap: Bitmap? = null
     private val mDisposable = CompositeDisposable()
 
-    private lateinit var db : RecipeDatabase
+    private lateinit var db: RecipeDatabase
     private lateinit var recipeDao: RecipeDAO
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         registerLauncher()
 
-        db = Room.databaseBuilder(requireContext(),RecipeDatabase::class.java,"Recipes").build()
+        db = Room.databaseBuilder(requireContext(), RecipeDatabase::class.java, "Recipes").build()
         recipeDao = db.recipeDao()
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ):  View? {
+    ): View? {
         _binding = FragmentRecipeBinding.inflate(inflater, container, false)
-        val view = binding.root
-        return view
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -70,42 +69,70 @@ class RecipeFragment : Fragment() {
         arguments?.let {
             val info = RecipeFragmentArgs.fromBundle(it).info
 
-            if(info == "new"){
+            if (info == "new") {
                 binding.deleteButton.isEnabled = false
                 binding.saveButton.isEnabled = true
-            } else{
+            } else {
                 binding.deleteButton.isEnabled = true
                 binding.saveButton.isEnabled = true
+                // Load the recipe data based on the provided ID
+                val recipeId = RecipeFragmentArgs.fromBundle(it).id
+                loadRecipeData(recipeId)
             }
         }
     }
 
-    private fun deleteRecipe(view : View) {
-
+    private fun loadRecipeData(recipeId: Int) {
+        mDisposable.add(
+            recipeDao.findById(recipeId)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    { recipe ->
+                        binding.editTextText.setText(recipe.name) // Ensure ID matches with XML
+                        binding.ingredientText.setText(recipe.ingredient)
+                        selectedBitmap = BitmapFactory.decodeByteArray(recipe.image, 0, recipe.image.size)
+                        binding.imageView.setImageBitmap(selectedBitmap)
+                    },
+                    { error ->
+                        Toast.makeText(requireContext(), "Error loading recipe", Toast.LENGTH_SHORT).show()
+                    }
+                )
+        )
     }
 
-    private fun saveRecipe(view : View) {
-        val name = binding.nameText.toString()
-        val ingredient = binding.ingredientText.toString()
+    private fun deleteRecipe(view: View) {
+        // Implement delete functionality if needed
+    }
 
-        if(selectedBitmap != null) {
-            val smallBitmap = createSmallBitmap(selectedBitmap!!,300)
+    private fun saveRecipe(view: View) {
+        val name = binding.editTextText.text.toString().trim() // Ensure ID matches with XML
+        val ingredient = binding.ingredientText.text.toString().trim()
+
+        if (name.isEmpty() || ingredient.isEmpty()) {
+            Toast.makeText(requireContext(), "Name and Ingredients cannot be empty", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (selectedBitmap != null) {
+            val smallBitmap = createSmallBitmap(selectedBitmap!!, 300)
             val outputStream = ByteArrayOutputStream()
-            smallBitmap.compress(Bitmap.CompressFormat.PNG,50,outputStream)
+            smallBitmap.compress(Bitmap.CompressFormat.PNG, 50, outputStream)
             val theByteArray = outputStream.toByteArray()
-            val recipe = Recipe(name, ingredient,theByteArray)
+            val recipe = Recipe(name, ingredient, theByteArray) // Ensure ID is 0 for auto-generate
 
             mDisposable.add(
                 recipeDao.insert(recipe)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(this::handleResponseForInsert)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(this::handleResponseForInsert)
             )
+        } else {
+            Toast.makeText(requireContext(), "Please select an image", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun handleResponseForInsert(){
-
+    private fun handleResponseForInsert() {
         val action = RecipeFragmentDirections.actionRecipeFragmentToListFragment()
         Navigation.findNavController(requireView()).navigate(action)
     }
@@ -142,59 +169,56 @@ class RecipeFragment : Fragment() {
         }
     }
 
-
     private fun registerLauncher() {
-        activityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()){ result ->
-            if(result.resultCode == AppCompatActivity.RESULT_OK){
+        activityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == AppCompatActivity.RESULT_OK) {
                 val intentFromResult = result.data
-                if(intentFromResult != null) {
+                if (intentFromResult != null) {
                     selectedImage = intentFromResult.data
                     try {
-                        if(Build.VERSION.SDK_INT>=28){
-                            val source = ImageDecoder.createSource(requireActivity().contentResolver,selectedImage!!)
+                        if (Build.VERSION.SDK_INT >= 28) {
+                            val source = ImageDecoder.createSource(requireActivity().contentResolver, selectedImage!!)
                             selectedBitmap = ImageDecoder.decodeBitmap(source)
                             binding.imageView.setImageBitmap(selectedBitmap)
-                        } else{
-                            selectedBitmap = MediaStore.Images.Media.getBitmap(requireActivity().contentResolver,selectedImage)
+                        } else {
+                            selectedBitmap = MediaStore.Images.Media.getBitmap(requireActivity().contentResolver, selectedImage)
                             binding.imageView.setImageBitmap(selectedBitmap)
                         }
-                    } catch (e : Exception){
+                    } catch (e: Exception) {
                         println(e.localizedMessage)
                     }
                 }
             }
         }
 
-        permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-                result->
-            if(result){
-                val intentToGallery = Intent(Intent.ACTION_PICK,MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { result ->
+            if (result) {
+                val intentToGallery = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
                 activityResultLauncher.launch(intentToGallery)
-            } else{
-                Toast.makeText(requireContext(),"Permission is not granted.",Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(requireContext(), "Permission is not granted.", Toast.LENGTH_LONG).show()
             }
         }
     }
 
-    private fun createSmallBitmap(bitmapSelectedByUser : Bitmap,maximumSize : Int) : Bitmap{
+    private fun createSmallBitmap(bitmapSelectedByUser: Bitmap, maximumSize: Int): Bitmap {
         var width = bitmapSelectedByUser.width
         var height = bitmapSelectedByUser.height
-        val bitmapRatio : Double = width.toDouble() / height.toDouble()
+        val bitmapRatio: Double = width.toDouble() / height.toDouble()
 
-        if(bitmapRatio > 1) { // image is horizontal
+        if (bitmapRatio > 1) { // image is horizontal
             width = maximumSize
             height = (width / bitmapRatio).toInt()
-        } else{ // image is vertical
+        } else { // image is vertical
             height = maximumSize
             width = (height * bitmapRatio).toInt()
-
         }
-        return Bitmap.createScaledBitmap(bitmapSelectedByUser,width,height,true)
+        return Bitmap.createScaledBitmap(bitmapSelectedByUser, width, height, true)
     }
-
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        mDisposable.clear()
     }
 }

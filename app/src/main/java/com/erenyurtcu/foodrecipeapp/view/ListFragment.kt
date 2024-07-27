@@ -1,15 +1,21 @@
 package com.erenyurtcu.foodrecipeapp.view
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.room.Room
 import com.erenyurtcu.foodrecipeapp.databinding.FragmentListBinding
+import com.erenyurtcu.foodrecipeapp.model.Recipe
 import com.erenyurtcu.foodrecipeapp.roomdb.RecipeDAO
 import com.erenyurtcu.foodrecipeapp.roomdb.RecipeDatabase
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.schedulers.Schedulers
 
 class ListFragment : Fragment() {
 
@@ -18,6 +24,7 @@ class ListFragment : Fragment() {
 
     private lateinit var db : RecipeDatabase
     private lateinit var recipeDao: RecipeDAO
+    private val mDisposable = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,9 +45,27 @@ class ListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.floatingActionButton.setOnClickListener { addNew(it) }
+        binding.recipeRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        getData() // Call getData to fetch and display the data
     }
 
-    fun addNew (view: View) {
+    private fun getData(){
+        mDisposable.add(
+            recipeDao.getAll()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe()
+        )
+    }
+
+    private fun handleResponse(recipes: List<Recipe>){
+        recipes.forEach {
+            println(it.name)
+            println(it.ingredient)
+        }
+    }
+
+    fun addNew(view: View) {
         val action = ListFragmentDirections.actionListFragmentToRecipeFragment(info = "new", id = -1)
         Navigation.findNavController(view).navigate(action)
     }
@@ -48,5 +73,6 @@ class ListFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        mDisposable.clear()
     }
 }
