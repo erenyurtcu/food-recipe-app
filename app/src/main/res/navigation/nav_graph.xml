@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/listFragment"
-        android:name="com.erenyurtcu.foodrecipeapp.ListFragment"
+        android:name="com.erenyurtcu.foodrecipeapp.view.ListFragment"
         android:label="fragment_list"
         tools:layout="@layout/fragment_list" >
         <action
@@ -16,7 +16,7 @@
     </fragment>
     <fragment
         android:id="@+id/recipeFragment"
-        android:name="com.erenyurtcu.foodrecipeapp.RecipeFragment"
+        android:name="com.erenyurtcu.foodrecipeapp.view.RecipeFragment"
         android:label="fragment_recipe"
         tools:layout="@layout/fragment_recipe" >
         <argument
@@ -25,5 +25,8 @@
         <argument
             android:name="id"
             app:argType="integer" />
+        <action
+            android:id="@+id/action_recipeFragment_to_listFragment"
+            app:destination="@id/listFragment" />
     </fragment>
 </navigation>

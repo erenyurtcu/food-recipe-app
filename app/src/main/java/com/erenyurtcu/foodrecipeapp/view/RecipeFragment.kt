@@ -1,4 +1,4 @@
-package com.erenyurtcu.foodrecipeapp
+package com.erenyurtcu.foodrecipeapp.view
 
 import android.Manifest
 import android.content.Intent
@@ -14,17 +14,22 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.erenyurtcu.foodrecipeapp.databinding.FragmentListBinding
+import androidx.navigation.Navigation
+import androidx.room.Room
 import com.erenyurtcu.foodrecipeapp.databinding.FragmentRecipeBinding
-import com.erenyurtcu.foodrecipeapp.RecipeFragmentArgs
+import com.erenyurtcu.foodrecipeapp.model.Recipe
+import com.erenyurtcu.foodrecipeapp.roomdb.RecipeDAO
+import com.erenyurtcu.foodrecipeapp.roomdb.RecipeDatabase
 import com.google.android.material.snackbar.Snackbar
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.schedulers.Schedulers
+import java.io.ByteArrayOutputStream
 
 
 class RecipeFragment : Fragment() {
@@ -34,10 +39,17 @@ class RecipeFragment : Fragment() {
     private lateinit var activityResultLauncher: ActivityResultLauncher<Intent>
     private var selectedImage : Uri? = null
     private var selectedBitmap : Bitmap? = null
+    private val mDisposable = CompositeDisposable()
+
+    private lateinit var db : RecipeDatabase
+    private lateinit var recipeDao: RecipeDAO
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         registerLauncher()
+
+        db = Room.databaseBuilder(requireContext(),RecipeDatabase::class.java,"Recipes").build()
+        recipeDao = db.recipeDao()
     }
 
     override fun onCreateView(
@@ -73,7 +85,29 @@ class RecipeFragment : Fragment() {
     }
 
     private fun saveRecipe(view : View) {
+        val name = binding.nameText.toString()
+        val ingredient = binding.ingredientText.toString()
 
+        if(selectedBitmap != null) {
+            val smallBitmap = createSmallBitmap(selectedBitmap!!,300)
+            val outputStream = ByteArrayOutputStream()
+            smallBitmap.compress(Bitmap.CompressFormat.PNG,50,outputStream)
+            val theByteArray = outputStream.toByteArray()
+            val recipe = Recipe(name, ingredient,theByteArray)
+
+            mDisposable.add(
+                recipeDao.insert(recipe)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(this::handleResponseForInsert)
+            )
+        }
+    }
+
+    private fun handleResponseForInsert(){
+
+        val action = RecipeFragmentDirections.actionRecipeFragmentToListFragment()
+        Navigation.findNavController(requireView()).navigate(action)
     }
 
     private fun selectImage(view: View) {
@@ -140,6 +174,22 @@ class RecipeFragment : Fragment() {
                 Toast.makeText(requireContext(),"Permission is not granted.",Toast.LENGTH_LONG).show()
             }
         }
+    }
+
+    private fun createSmallBitmap(bitmapSelectedByUser : Bitmap,maximumSize : Int) : Bitmap{
+        var width = bitmapSelectedByUser.width
+        var height = bitmapSelectedByUser.height
+        val bitmapRatio : Double = width.toDouble() / height.toDouble()
+
+        if(bitmapRatio > 1) { // image is horizontal
+            width = maximumSize
+            height = (width / bitmapRatio).toInt()
+        } else{ // image is vertical
+            height = maximumSize
+            width = (height * bitmapRatio).toInt()
+
+        }
+        return Bitmap.createScaledBitmap(bitmapSelectedByUser,width,height,true)
     }
 
 
