@@ -5,6 +5,8 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.navigation.Navigation
+import androidx.navigation.fragment.findNavController
 import com.erenyurtcu.foodrecipeapp.databinding.FragmentListBinding
 import com.erenyurtcu.foodrecipeapp.ListFragmentDirections
 
@@ -33,6 +35,7 @@ class ListFragment : Fragment() {
 
     fun addNew (view: View) {
         val action = ListFragmentDirections.actionListFragmentToRecipeFragment(info = "new", id = -1)
+        Navigation.findNavController(view).navigate(action)
     }
 
     override fun onDestroyView() {
