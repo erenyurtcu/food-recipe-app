@@ -53,7 +53,7 @@ class ListFragment : Fragment() {
             recipeDao.getAll()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe()
+                .subscribe({ recipes -> handleResponse(recipes) })
         )
     }
 

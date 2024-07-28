@@ -31,6 +31,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.io.ByteArrayOutputStream
+import android.app.AlertDialog
 
 class RecipeFragment : Fragment() {
     private var _binding: FragmentRecipeBinding? = null
@@ -40,6 +41,7 @@ class RecipeFragment : Fragment() {
     private var selectedImage: Uri? = null
     private var selectedBitmap: Bitmap? = null
     private val mDisposable = CompositeDisposable()
+    private var selectedRecipe: Recipe? = null
 
     private lateinit var db: RecipeDatabase
     private lateinit var recipeDao: RecipeDAO
@@ -70,12 +72,12 @@ class RecipeFragment : Fragment() {
             val info = RecipeFragmentArgs.fromBundle(it).info
 
             if (info == "new") {
+                selectedRecipe = null
                 binding.deleteButton.isEnabled = false
                 binding.saveButton.isEnabled = true
             } else {
                 binding.deleteButton.isEnabled = true
                 binding.saveButton.isEnabled = true
-                // Load the recipe data based on the provided ID
                 val recipeId = RecipeFragmentArgs.fromBundle(it).id
                 loadRecipeData(recipeId)
             }
@@ -89,6 +91,7 @@ class RecipeFragment : Fragment() {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                     { recipe ->
+                        selectedRecipe = recipe
                         binding.editTextText.setText(recipe.name)
                         binding.ingredientText.setText(recipe.ingredient)
                         selectedBitmap = BitmapFactory.decodeByteArray(recipe.image, 0, recipe.image.size)
@@ -102,11 +105,33 @@ class RecipeFragment : Fragment() {
     }
 
     private fun deleteRecipe(view: View) {
-        // Implement delete functionality if needed
+        selectedRecipe?.let { recipe ->
+            AlertDialog.Builder(requireContext()).apply {
+                setTitle("Delete Recipe")
+                setMessage("Are you sure you want to delete this recipe?")
+                setPositiveButton("Yes") { _, _ ->
+                    mDisposable.add(
+                        recipeDao.delete(recipe)
+                            .subscribeOn(Schedulers.io())
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe({
+                                Toast.makeText(requireContext(), "Recipe deleted successfully", Toast.LENGTH_SHORT).show()
+                                val action = RecipeFragmentDirections.actionRecipeFragmentToListFragment()
+                                Navigation.findNavController(view).navigate(action)
+                            }, { error ->
+                                Toast.makeText(requireContext(), "Error deleting recipe", Toast.LENGTH_SHORT).show()
+                            })
+                    )
+                }
+                setNegativeButton("No", null)
+            }.show()
+        } ?: run {
+            Toast.makeText(requireContext(), "No recipe selected to delete", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun saveRecipe(view: View) {
-        val name = binding.editTextText.text.toString().trim() // Ensure ID matches with XML
+        val name = binding.editTextText.text.toString().trim()
         val ingredient = binding.ingredientText.text.toString().trim()
 
         if (name.isEmpty() || ingredient.isEmpty()) {
@@ -119,20 +144,46 @@ class RecipeFragment : Fragment() {
             val outputStream = ByteArrayOutputStream()
             smallBitmap.compress(Bitmap.CompressFormat.PNG, 50, outputStream)
             val theByteArray = outputStream.toByteArray()
-            val recipe = Recipe(name, ingredient, theByteArray) // Ensure ID is 0 for auto-generate
 
-            mDisposable.add(
-                recipeDao.insert(recipe)
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe(this::handleResponseForInsert)
-            )
+            if (selectedRecipe != null) {
+                // Update existing recipe
+                val updatedRecipe = Recipe(
+                    id = selectedRecipe!!.id,  // This will no longer be an error
+                    name = name,
+                    ingredient = ingredient,
+                    image = theByteArray
+                )
+
+                mDisposable.add(
+                    recipeDao.update(updatedRecipe)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(this::handleResponseForUpdate)
+                )
+            } else {
+                // Insert new recipe
+                val newRecipe = Recipe(name = name, ingredient = ingredient, image = theByteArray)
+
+                mDisposable.add(
+                    recipeDao.insert(newRecipe)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(this::handleResponseForInsert)
+                )
+            }
         } else {
             Toast.makeText(requireContext(), "Please select an image", Toast.LENGTH_SHORT).show()
         }
     }
 
+
     private fun handleResponseForInsert() {
+        val action = RecipeFragmentDirections.actionRecipeFragmentToListFragment()
+        Navigation.findNavController(requireView()).navigate(action)
+    }
+
+    private fun handleResponseForUpdate() {
+        Toast.makeText(requireContext(), "Recipe updated successfully", Toast.LENGTH_SHORT).show()
         val action = RecipeFragmentDirections.actionRecipeFragmentToListFragment()
         Navigation.findNavController(requireView()).navigate(action)
     }
@@ -176,16 +227,18 @@ class RecipeFragment : Fragment() {
                 if (intentFromResult != null) {
                     selectedImage = intentFromResult.data
                     try {
-                        if (Build.VERSION.SDK_INT >= 28) {
-                            val source = ImageDecoder.createSource(requireActivity().contentResolver, selectedImage!!)
-                            selectedBitmap = ImageDecoder.decodeBitmap(source)
-                            binding.imageView.setImageBitmap(selectedBitmap)
-                        } else {
-                            selectedBitmap = MediaStore.Images.Media.getBitmap(requireActivity().contentResolver, selectedImage)
-                            binding.imageView.setImageBitmap(selectedBitmap)
+                        selectedImage?.let { uri ->
+                            if (Build.VERSION.SDK_INT >= 28) {
+                                val source = ImageDecoder.createSource(requireActivity().contentResolver, uri)
+                                selectedBitmap = ImageDecoder.decodeBitmap(source)
+                                binding.imageView.setImageBitmap(selectedBitmap)
+                            } else {
+                                selectedBitmap = MediaStore.Images.Media.getBitmap(requireActivity().contentResolver, uri)
+                                binding.imageView.setImageBitmap(selectedBitmap)
+                            }
                         }
                     } catch (e: Exception) {
-                        println(e.localizedMessage)
+                        e.printStackTrace()
                     }
                 }
             }
@@ -196,24 +249,24 @@ class RecipeFragment : Fragment() {
                 val intentToGallery = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
                 activityResultLauncher.launch(intentToGallery)
             } else {
-                Toast.makeText(requireContext(), "Permission is not granted.", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), "Permission needed!", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun createSmallBitmap(bitmapSelectedByUser: Bitmap, maximumSize: Int): Bitmap {
-        var width = bitmapSelectedByUser.width
-        var height = bitmapSelectedByUser.height
-        val bitmapRatio: Double = width.toDouble() / height.toDouble()
+    private fun createSmallBitmap(image: Bitmap, maximumSize: Int): Bitmap {
+        var width = image.width
+        var height = image.height
 
-        if (bitmapRatio > 1) { // image is horizontal
+        val bitmapRatio: Double = width.toDouble() / height.toDouble()
+        if (bitmapRatio > 1) {
             width = maximumSize
             height = (width / bitmapRatio).toInt()
-        } else { // image is vertical
+        } else {
             height = maximumSize
             width = (height * bitmapRatio).toInt()
         }
-        return Bitmap.createScaledBitmap(bitmapSelectedByUser, width, height, true)
+        return Bitmap.createScaledBitmap(image, width, height, true)
     }
 
     override fun onDestroyView() {

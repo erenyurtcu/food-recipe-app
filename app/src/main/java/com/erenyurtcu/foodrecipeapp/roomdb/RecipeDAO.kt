@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import com.erenyurtcu.foodrecipeapp.model.Recipe
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
@@ -12,14 +13,17 @@ import io.reactivex.rxjava3.core.Flowable
 interface RecipeDAO {
 
     @Query("SELECT * FROM Recipe")
-    fun getAll() : Flowable<List<Recipe>>
+    fun getAll(): Flowable<List<Recipe>>
 
     @Query("SELECT * FROM Recipe WHERE id = :id")
-    fun findById(id: Int) : Flowable<Recipe>
+    fun findById(id: Int): Flowable<Recipe>
 
     @Insert
-    fun insert(recipe: Recipe) : Completable
+    fun insert(recipe: Recipe): Completable
 
     @Delete
-    fun delete(recipe: Recipe) : Completable
+    fun delete(recipe: Recipe): Completable
+
+    @Update
+    fun update(recipe: Recipe): Completable
 }

@@ -6,15 +6,12 @@ import androidx.room.PrimaryKey
 
 @Entity
 data class Recipe (
-    @ColumnInfo(name = "name")
-    var name : String,
-
-    @ColumnInfo(name = "ingredient")
-    var ingredient : String,
-
-    @ColumnInfo(name = "image")
-    var image : ByteArray
-){
     @PrimaryKey(autoGenerate = true)
-    var id = 0
-}
+    var id: Int = 0, // Ensure this has a default value
+    @ColumnInfo(name = "name")
+    var name: String,
+    @ColumnInfo(name = "ingredient")
+    var ingredient: String,
+    @ColumnInfo(name = "image")
+    var image: ByteArray
+)
