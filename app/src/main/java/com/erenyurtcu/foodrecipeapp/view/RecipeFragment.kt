@@ -89,7 +89,7 @@ class RecipeFragment : Fragment() {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
                     { recipe ->
-                        binding.editTextText.setText(recipe.name) // Ensure ID matches with XML
+                        binding.editTextText.setText(recipe.name)
                         binding.ingredientText.setText(recipe.ingredient)
                         selectedBitmap = BitmapFactory.decodeByteArray(recipe.image, 0, recipe.image.size)
                         binding.imageView.setImageBitmap(selectedBitmap)

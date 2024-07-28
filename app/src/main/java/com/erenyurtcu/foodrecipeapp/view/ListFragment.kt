@@ -7,8 +7,8 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import androidx.room.Room
+import com.erenyurtcu.foodrecipeapp.adapter.RecipeAdapter
 import com.erenyurtcu.foodrecipeapp.databinding.FragmentListBinding
 import com.erenyurtcu.foodrecipeapp.model.Recipe
 import com.erenyurtcu.foodrecipeapp.roomdb.RecipeDAO
@@ -22,14 +22,14 @@ class ListFragment : Fragment() {
     private var _binding: FragmentListBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var db : RecipeDatabase
+    private lateinit var db: RecipeDatabase
     private lateinit var recipeDao: RecipeDAO
     private val mDisposable = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        db = Room.databaseBuilder(requireContext(),RecipeDatabase::class.java,"Recipes").build()
+        db = Room.databaseBuilder(requireContext(), RecipeDatabase::class.java, "Recipes").build()
         recipeDao = db.recipeDao()
     }
 
@@ -38,18 +38,17 @@ class ListFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         _binding = FragmentListBinding.inflate(inflater, container, false)
-        val view = binding.root
-        return view
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.floatingActionButton.setOnClickListener { addNew(it) }
         binding.recipeRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        getData() // Call getData to fetch and display the data
+        getData()
     }
 
-    private fun getData(){
+    private fun getData() {
         mDisposable.add(
             recipeDao.getAll()
                 .subscribeOn(Schedulers.io())
@@ -58,14 +57,12 @@ class ListFragment : Fragment() {
         )
     }
 
-    private fun handleResponse(recipes: List<Recipe>){
-        recipes.forEach {
-            println(it.name)
-            println(it.ingredient)
-        }
+    private fun handleResponse(recipes: List<Recipe>) {
+        val adapter = RecipeAdapter(recipes)
+        binding.recipeRecyclerView.adapter = adapter
     }
 
-    fun addNew(view: View) {
+    private fun addNew(view: View) {
         val action = ListFragmentDirections.actionListFragmentToRecipeFragment(info = "new", id = -1)
         Navigation.findNavController(view).navigate(action)
     }
