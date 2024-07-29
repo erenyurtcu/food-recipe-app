@@ -8,11 +8,13 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.room.Room
+import com.erenyurtcu.foodrecipeapp.R
 import com.erenyurtcu.foodrecipeapp.adapter.RecipeAdapter
 import com.erenyurtcu.foodrecipeapp.databinding.FragmentListBinding
 import com.erenyurtcu.foodrecipeapp.model.Recipe
 import com.erenyurtcu.foodrecipeapp.roomdb.RecipeDAO
 import com.erenyurtcu.foodrecipeapp.roomdb.RecipeDatabase
+import com.erenyurtcu.foodrecipeapp.util.DividerItemDecoration
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -45,6 +47,10 @@ class ListFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         binding.floatingActionButton.setOnClickListener { addNew(it) }
         binding.recipeRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+
+        val dividerItemDecoration = DividerItemDecoration(requireContext(), R.drawable.divider)
+        binding.recipeRecyclerView.addItemDecoration(dividerItemDecoration)
+
         getData()
     }
 
