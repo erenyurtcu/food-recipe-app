@@ -1,5 +1,6 @@
 package com.erenyurtcu.foodrecipeapp.adapter
 
+import android.graphics.BitmapFactory
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.navigation.Navigation
@@ -22,9 +23,15 @@ class RecipeAdapter(val RecipeList: List<Recipe>) : RecyclerView.Adapter<RecipeA
     }
 
     override fun onBindViewHolder(holder: RecipeHolder, position: Int) {
-        holder.binding.recyclerViewTextView.text = RecipeList[position].name
+        val recipe = RecipeList[position]
+        holder.binding.recyclerViewTextView.text = recipe.name
+
+        // Decode the image byte array and set it to the ImageView
+        val bitmap = BitmapFactory.decodeByteArray(recipe.image, 0, recipe.image.size)
+        holder.binding.recyclerViewImageView.setImageBitmap(bitmap)
+
         holder.itemView.setOnClickListener {
-            val action = ListFragmentDirections.actionListFragmentToRecipeFragment(info = "old", id = RecipeList[position].id)
+            val action = ListFragmentDirections.actionListFragmentToRecipeFragment(info = "old", id = recipe.id)
             Navigation.findNavController(it).navigate(action)
         }
     }
