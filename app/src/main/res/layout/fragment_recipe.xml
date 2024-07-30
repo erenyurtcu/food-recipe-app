@@ -60,8 +60,11 @@
             android:layout_marginTop="5dp"
             android:layout_marginRight="20dp"
             android:layout_marginBottom="5dp"
+            android:backgroundTint="#F44336"
+            android:background="@drawable/roundstyle"
             android:onClick="save"
-            android:text="Save" />
+            android:text="Save"
+            android:textColor="#FFFFFF" />
 
         <Button
             android:id="@+id/deleteButton"
@@ -71,8 +74,11 @@
             android:layout_marginTop="5dp"
             android:layout_marginRight="20dp"
             android:layout_marginBottom="5dp"
+            android:backgroundTint="#F44336"
+            android:background="@drawable/roundstyle"
             android:onClick="delete"
-            android:text="Delete" />
+            android:text="Delete"
+            android:textColor="#FFFFFF" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
